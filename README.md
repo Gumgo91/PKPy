@@ -16,7 +16,9 @@ PKPy is an open-source Python framework designed to streamline population pharma
 ## Installation
 
 To install PKPy, you can use pip:
-
+```
+!pip install git+https://github.com/gumgo91/pkpy.git
+```
 
 ## Core Modules
 
