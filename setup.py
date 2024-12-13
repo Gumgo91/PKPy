@@ -21,7 +21,7 @@ setup(
     description="Simple and Fast pharmacokinetic modeling package in Python",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/antibody91/pkpy",
+    url="https://github.com/gumgo91/pkpy",
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Science/Research",
