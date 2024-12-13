@@ -4,7 +4,7 @@ PKPy is an open-source Python framework designed to streamline population pharma
 
 ## Key Features
 
-- Multiple compartment models (1-compartment, 2-compartment, absorption models)
+- Multiple compartment models (1-compartment, 1-compartment with absorption models)
 - Automated non-compartmental analysis (NCA)
 - Covariate effect analysis
 - Visual predictive checks (VPC)
