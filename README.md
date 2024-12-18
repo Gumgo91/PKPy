@@ -1,3 +1,5 @@
+<img src="logo/logo.png" alt="PKPy Logo" width="400"/>
+
 # PKPy: A Python-Based Framework for Automated Population Pharmacokinetic Analysis
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
