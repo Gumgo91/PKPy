@@ -1,64 +1,42 @@
 # PKPy: A Python-Based Framework for Automated Population Pharmacokinetic Analysis
 
-PKPy is an open-source Python framework designed to streamline population pharmacokinetic analysis and modeling. The framework combines user accessibility with computational performance to provide an efficient platform for PK/PD modeling.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
 
-## Key Features
+PKPy is an open-source Python framework that simplifies population pharmacokinetic (PopPK) analysis by emphasizing automation and accessibility. The framework minimizes the need for manual parameter initialization while maintaining analytical rigor, making sophisticated PK analysis more accessible to researchers and practitioners.
 
-- Multiple compartment models (1-compartment, 1-compartment with absorption models)
-- Automated non-compartmental analysis (NCA)
-- Covariate effect analysis
-- Visual predictive checks (VPC)
-- Diagnostic plot generation
-- Simulation engine
-- Parameter estimation
-- Robust error handling
+## 🚀 Key Features
 
-## Installation
+- **Automated Parameter Initialization**: Minimizes the need for user-specified initial estimates
+- **Multiple PK Models**: Supports one-compartment models with and without absorption
+- **Integrated Analysis Pipeline**: Combines PopPK modeling with automatic non-compartmental analysis (NCA)
+- **Automated Covariate Analysis**: Smart detection of significant parameter-covariate relationships
+- **Comprehensive Diagnostics**: Automated generation of goodness-of-fit plots and validation metrics
+- **High Performance**: Optimized computations using Numba acceleration
 
-To install PKPy, you can use pip:
+## ⚡ Performance
+
+Comparative analysis on Google Colab shows PKPy's computational advantages:
+
+| Metric | PKPy | Saemix+PKNCA |
+|--------|------|--------------|
+| Installation Time | 16s | 96s |
+| Analysis Time (no initial estimates) | 15s | 101s |
+| Analysis Time (with initial estimates) | 13s | 102s |
+
+Key benefits:
+- Faster installation with efficient dependency management
+- Significantly reduced analysis runtime
+- Consistent parameter estimation regardless of initial values
+- Robust convergence without requiring manual initialization
+
+## 🛠️ Installation
+
+```bash
+pip install git+https://github.com/gumgo91/pkpy.git
 ```
-!pip install git+https://github.com/gumgo91/pkpy.git
-```
 
-## Core Modules
-
-- `models.py`: PK model definitions
-- `workflow.py`: Analysis workflow management
-- `covariate_analysis.py`: Covariate analysis tools
-- `simulation.py`: Simulation engine
-- `fitting.py`: Parameter estimation
-- `utils.py`: Utility functions
-
-## Features in Detail
-
-### Compartment Models
-- One-compartment model
-- One-compartment model with absorption
-- Two-compartment model
-- Custom model support
-
-### Non-Compartmental Analysis
-- AUC calculation
-- Terminal half-life estimation
-- Clearance and volume estimation
-- Multiple NCA metrics
-- Robust error handling
-
-### Covariate Analysis
-- Automated covariate screening
-- Multiple relationship types (linear, power, exponential)
-- Forward selection algorithm
-- Statistical significance testing
-- Diagnostic plots
-
-### Simulation Capabilities
-- Virtual population generation
-- Parameter variability
-- Covariate effects
-- Residual error models
-- Trial design optimization
-
-## Requirements
+## 📋 Requirements
 
 - Python ≥ 3.8
 - NumPy ≥ 1.20.0
@@ -69,7 +47,74 @@ To install PKPy, you can use pip:
 - Scikit-learn ≥ 0.24.0
 - Numba ≥ 0.54.0
 
-## Contact
+## 🚀 Quick Start
 
-- Email: hskong@snu.ac.kr
+### Basic One-Compartment Model
+
+```python
+import numpy as np
+from pkpy import create_pkpy_model, BasePKWorkflow
+
+# Define model parameters
+parameters = {
+    "CL": {"value": 5.0, "cv_percent": 15, "lower_bound": 0.1},
+    "V": {"value": 50.0, "cv_percent": 15, "lower_bound": 1.0}
+}
+
+covariate_models = {
+    'CL': {'CRCL': {'type': 'power', 'coefficient': 0.75}},
+    'V': {'WT': {'type': 'power', 'coefficient': 0.75}}
+}
+
+# Create model and workflow
+model = create_pkpy_model("onecomp", parameters)
+workflow = BasePKWorkflow(model, n_subjects=20)
+
+# Generate and analyze data
+times = np.linspace(0, 24, 10)
+workflow.generate_virtual_population(times, covariate_models=covariate_models)
+results = workflow.run_analysis(create_plots=True)
+workflow.print_summary()
+```
+
+### Analyzing Real Data (e.g., Theophylline Dataset)
+
+```python
+from pkpy import BasePKWorkflow
+from pkpy.utils import convert_data
+
+# Convert data
+files = convert_data('Theoph.csv',
+                    id_col='Subject',
+                    time_col='Time',
+                    conc_col='conc')
+
+# Create and run workflow
+workflow = BasePKWorkflow.from_files(
+    model_type='onecomp_abs',
+    conc_file=files['concentrations'],
+    time_file=files['times'],
+    demo_file=files['demographics'],
+    dose=320
+)
+
+results = workflow.run_analysis(create_plots=True)
+workflow.print_summary()
+```
+
+## 📊 Examples and Studies
+
+The repository includes several resources to help you get started and understand PKPy's capabilities:
+
+- `examples/example.ipynb`: Detailed examples of basic usage and features
+- `examples/Scenario test.ipynb`: Performance evaluation across various scenarios
+- `Comparative study/`: Detailed performance comparison between PKPy and Saemix+PKNCA in Google Colab environment
+
+## 📫 Contact & Support
+
+- Primary Author: Hyunseung Kong (hskong@snu.ac.kr)
 - Issue Tracker: https://github.com/gumgo91/PKPy/issues
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
