@@ -1,4 +1,4 @@
-<img src="logo/logo.png" alt="PKPy Logo" width="400"/>
+<img src="logo/logo.png" alt="PKPy Logo" width="200"/>
 
 # PKPy: A Python-Based Framework for Automated Population Pharmacokinetic Analysis
 
