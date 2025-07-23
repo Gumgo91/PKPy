@@ -30,7 +30,7 @@ PKPy provides comprehensive model evaluation through multiple metrics:
 | **AAFE** | Absolute Average Fold Error = mean(\|predicted/observed\|) | <1.5: Excellent, <2.0: Good |
 
 ### Recent Validation Results
-<img src="comprehensive_metrics_comparison.png" alt="Metrics Comparison" width="600"/>
+<img src="figures/comprehensive_metrics_comparison.png" alt="Metrics Comparison" width="600"/>
 
 ## ⚡ Performance
 
