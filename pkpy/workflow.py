@@ -8,7 +8,7 @@ from .models import CompartmentModel
 from .simulation import SimulationEngine
 from .fitting import PKPyFit
 from .covariate_analysis import CovariateAnalyzer, CovariateRelationship
-from .utils import calculate_nca_parameters
+from .utils import calculate_nca_parameters, calculate_validation_metrics
 from .models import create_pkpy_model
 
 class BasePKWorkflow:
@@ -101,6 +101,8 @@ class BasePKWorkflow:
             self.results['fit_metrics'] = fit_results.get('fit_metrics', {
                 'R2': np.nan,
                 'RMSE': np.nan,
+                'AFE': np.nan,
+                'AAFE': np.nan,
                 'MAE': np.nan,
                 'Mean_Residual': np.nan
             })
@@ -122,18 +124,35 @@ class BasePKWorkflow:
                     ss_res = np.sum(residuals**2)
                     ss_tot = np.sum((obs - np.mean(obs))**2)
                     
-                    self.results['fit_metrics'] = {
-                        'R2': 1 - ss_res/ss_tot if ss_tot != 0 else np.nan,
-                        'RMSE': np.sqrt(np.mean(residuals**2)),
-                        'MAE': np.mean(np.abs(residuals)),
-                        'Mean_Residual': np.mean(residuals)
-                    }
+                    # Try to use the validation metrics function
+                    try:
+                        validation_metrics = calculate_validation_metrics(obs, pred)
+                        self.results['fit_metrics'] = {
+                            'R2': validation_metrics['R2'],
+                            'RMSE': validation_metrics['RMSE'],
+                            'AFE': validation_metrics['AFE'],
+                            'AAFE': validation_metrics['AAFE'],
+                            'MAE': np.mean(np.abs(residuals)),
+                            'Mean_Residual': np.mean(residuals)
+                        }
+                    except:
+                        # Fallback calculation
+                        self.results['fit_metrics'] = {
+                            'R2': 1 - ss_res/ss_tot if ss_tot != 0 else np.nan,
+                            'RMSE': np.sqrt(np.mean(residuals**2)),
+                            'AFE': np.nan,
+                            'AAFE': np.nan,
+                            'MAE': np.mean(np.abs(residuals)),
+                            'Mean_Residual': np.mean(residuals)
+                        }
                     
         except Exception as e:
             print(f"Error in model fitting: {str(e)}")
             self.results['fit_metrics'] = {
                 'R2': np.nan,
                 'RMSE': np.nan,
+                'AFE': np.nan,
+                'AAFE': np.nan,
                 'MAE': np.nan,
                 'Mean_Residual': np.nan
             }
@@ -353,24 +372,44 @@ class BasePKWorkflow:
             plt.tight_layout()
             self.results['diagnostic_plots'] = fig
 
-            # Calculate metrics
-            obs_mean = np.mean(observed)
-            ss_res = np.sum(residuals**2)
-            ss_tot = np.sum((observed - obs_mean)**2)
-            
-            # Calculate final metrics with error handling
-            r2 = 1 - ss_res/ss_tot if ss_tot != 0 else np.nan
-            rmse = np.sqrt(np.mean(residuals**2)) if len(residuals) > 0 else np.nan
-            mae = np.mean(np.abs(residuals)) if len(residuals) > 0 else np.nan
-            mean_residual = np.mean(residuals) if len(residuals) > 0 else np.nan
-            
-            self.results['fit_metrics'] = {
-                'R2': r2,
-                'RMSE': rmse,
-                'MAE': mae,
-                'Mean_Residual': mean_residual,
-                'N_valid_points': len(observed)
-            }
+            # Calculate metrics using the comprehensive validation function
+            try:
+                validation_metrics = calculate_validation_metrics(observed, predicted)
+                
+                # Add additional metrics that are not in the validation function
+                mae = np.mean(np.abs(residuals)) if len(residuals) > 0 else np.nan
+                mean_residual = np.mean(residuals) if len(residuals) > 0 else np.nan
+                
+                self.results['fit_metrics'] = {
+                    'R2': validation_metrics['R2'],
+                    'RMSE': validation_metrics['RMSE'],
+                    'AFE': validation_metrics['AFE'],
+                    'AAFE': validation_metrics['AAFE'],
+                    'MAE': mae,
+                    'Mean_Residual': mean_residual,
+                    'N_valid_points': len(observed)
+                }
+            except Exception as e:
+                print(f"Warning: Error calculating validation metrics: {str(e)}")
+                # Fallback to basic metrics
+                obs_mean = np.mean(observed)
+                ss_res = np.sum(residuals**2)
+                ss_tot = np.sum((observed - obs_mean)**2)
+                
+                r2 = 1 - ss_res/ss_tot if ss_tot != 0 else np.nan
+                rmse = np.sqrt(np.mean(residuals**2)) if len(residuals) > 0 else np.nan
+                mae = np.mean(np.abs(residuals)) if len(residuals) > 0 else np.nan
+                mean_residual = np.mean(residuals) if len(residuals) > 0 else np.nan
+                
+                self.results['fit_metrics'] = {
+                    'R2': r2,
+                    'RMSE': rmse,
+                    'AFE': np.nan,
+                    'AAFE': np.nan,
+                    'MAE': mae,
+                    'Mean_Residual': mean_residual,
+                    'N_valid_points': len(observed)
+                }
             
             print(f"Metrics calculated using {len(observed)} valid data points")
             
@@ -379,6 +418,8 @@ class BasePKWorkflow:
             self.results['fit_metrics'] = {
                 'R2': np.nan,
                 'RMSE': np.nan,
+                'AFE': np.nan,
+                'AAFE': np.nan,
                 'MAE': np.nan,
                 'Mean_Residual': np.nan
             }
@@ -508,6 +549,10 @@ class BasePKWorkflow:
                 metrics = self.results['fit_metrics']
                 print(f"R-squared:        {metrics['R2']:.3f}")
                 print(f"RMSE:             {metrics['RMSE']:.3f}")
+                if 'AFE' in metrics and not np.isnan(metrics['AFE']):
+                    print(f"AFE:              {metrics['AFE']:.3f}")
+                if 'AAFE' in metrics and not np.isnan(metrics['AAFE']):
+                    print(f"AAFE:             {metrics['AAFE']:.3f}")
                 print(f"MAE:              {metrics['MAE']:.3f}")
                 print(f"Mean Residual:    {metrics['Mean_Residual']:.3f}")
         else:
@@ -578,6 +623,21 @@ class BasePKWorkflow:
                     'Ka': {'value': 1.0, 'cv_percent': 30},
                     'CL': {'value': 5.0, 'cv_percent': 25},
                     'V': {'value': 50.0, 'cv_percent': 20}
+                }
+            elif model_type == 'twocomp':
+                initial_params = {
+                    'CL': {'value': 5.0, 'cv_percent': 25},
+                    'V1': {'value': 30.0, 'cv_percent': 20},
+                    'Q': {'value': 10.0, 'cv_percent': 30},
+                    'V2': {'value': 50.0, 'cv_percent': 25}
+                }
+            elif model_type == 'twocomp_abs':
+                initial_params = {
+                    'Ka': {'value': 1.0, 'cv_percent': 30},
+                    'CL': {'value': 5.0, 'cv_percent': 25},
+                    'V1': {'value': 30.0, 'cv_percent': 20},
+                    'Q': {'value': 10.0, 'cv_percent': 30},
+                    'V2': {'value': 50.0, 'cv_percent': 25}
                 }
             else:
                 raise ValueError(f"Unsupported model type: {model_type}")

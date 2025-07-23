@@ -2,6 +2,64 @@ import numpy as np
 from scipy import interpolate
 from typing import Dict, List, Optional, Tuple
 
+def calculate_validation_metrics(
+    observed: np.ndarray, 
+    predicted: np.ndarray
+) -> Dict[str, float]:
+    """
+    Calculate comprehensive validation metrics for PK model evaluation
+    
+    Parameters:
+    -----------
+    observed: np.ndarray
+        Observed concentration values
+    predicted: np.ndarray
+        Predicted concentration values
+        
+    Returns:
+    --------
+    Dict[str, float]
+        Dictionary containing R², RMSE, AFE, AAFE metrics
+    """
+    # Ensure arrays are 1D and properly aligned
+    observed = np.asarray(observed).flatten()
+    predicted = np.asarray(predicted).flatten()
+    
+    if len(observed) != len(predicted):
+        raise ValueError(f"Length mismatch: observed ({len(observed)}) != predicted ({len(predicted)})")
+    
+    # Remove any nan or invalid values
+    mask = ~(np.isnan(observed) | np.isnan(predicted) | (observed <= 0) | (predicted <= 0))
+    observed_clean = observed[mask]
+    predicted_clean = predicted[mask]
+    
+    if len(observed_clean) < 3:
+        raise ValueError("Need at least 3 valid data points for validation metrics")
+    
+    # Calculate R² (coefficient of determination)
+    ss_res = np.sum((observed_clean - predicted_clean) ** 2)
+    ss_tot = np.sum((observed_clean - np.mean(observed_clean)) ** 2)
+    r2 = 1 - (ss_res / ss_tot) if ss_tot > 0 else np.nan
+    
+    # Calculate RMSE (Root Mean Square Error)
+    rmse = np.sqrt(np.mean((observed_clean - predicted_clean) ** 2))
+    
+    # Calculate AFE (Average Fold Error)
+    # AFE = mean(predicted/observed)
+    fold_errors = predicted_clean / observed_clean
+    afe = np.mean(fold_errors)
+    
+    # Calculate AAFE (Absolute Average Fold Error)
+    # AAFE = mean(|predicted/observed|)
+    aafe = np.mean(np.abs(fold_errors))
+    
+    return {
+        'R2': r2,
+        'RMSE': rmse,
+        'AFE': afe,
+        'AAFE': aafe
+    }
+
 def calculate_nca_parameters(
     times: np.ndarray,
     concentrations: np.ndarray,

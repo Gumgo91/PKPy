@@ -2,14 +2,25 @@ import numpy as np
 from scipy.optimize import minimize
 from typing import Dict, Optional, Tuple, List
 from .models import CompartmentModel
-from numba import jit
 
-@jit(nopython=True)
+# Try to import numba, but make it optional
+try:
+    from numba import jit
+    HAS_NUMBA = True
+except ImportError:
+    HAS_NUMBA = False
+    # Define a dummy decorator if numba is not available
+    def jit(*args, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+
+@jit(nopython=True if HAS_NUMBA else False)
 def _calculate_objective(log_obs, log_pred, valid_mask):
     """목적 함수의 계산 부분을 최적화"""
     return np.sum((log_obs[valid_mask] - log_pred[valid_mask]) ** 2)
 
-@jit(nopython=True)
+@jit(nopython=True if HAS_NUMBA else False)
 def _calculate_penalty(log_params, lower_bounds, upper_bounds):
     """파라미터 페널티 계산을 최적화"""
     penalty = 0.0
@@ -109,22 +120,36 @@ class PKPyFit:
             best_obj = float('inf')
             best_params = None
             
-            # try multiple initial values
-            for scale_factor in [0.1, 0.5, 1.0, 1.5, 2.0]:
+            # try multiple initial values with more conservative approach
+            scale_factors = [0.5, 0.75, 1.0, 1.25, 1.5]
+            for scale_factor in scale_factors:
                 try:
-                    init_params = log_pop_params + np.log(scale_factor) + np.random.normal(0, 0.1, len(log_pop_params))
-                    result = minimize(
-                        self._objective_individual,
-                        init_params,
-                        args=(subj_conc,),
-                        method='Nelder-Mead',
-                        options={'maxiter': 9999}
-                    )
+                    # More conservative initial parameter perturbation
+                    init_params = log_pop_params + np.log(scale_factor) + np.random.normal(0, 0.05, len(log_pop_params))
                     
-                    if result.fun < best_obj:
-                        best_obj = result.fun
-                        best_params = result.x
-                        
+                    # Try different optimization methods
+                    for method in ['Nelder-Mead', 'Powell']:
+                        try:
+                            if method == 'Nelder-Mead':
+                                options = {'maxiter': 5000}
+                            else:  # Powell
+                                options = {'maxiter': 5000}
+                            
+                            result = minimize(
+                                self._objective_individual,
+                                init_params,
+                                args=(subj_conc,),
+                                method=method,
+                                options=options
+                            )
+                            
+                            if result.success and result.fun < best_obj:
+                                best_obj = result.fun
+                                best_params = result.x
+                                break
+                        except:
+                            continue
+                            
                 except:
                     continue
                     
