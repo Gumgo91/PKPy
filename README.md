@@ -121,46 +121,28 @@ workflow.generate_virtual_population(times, dose=100.0)
 results = workflow.run_analysis(create_plots=True)
 ```
 
-### Analyzing Real Data - Theophylline Example
-
-PKPy includes built-in support for analyzing the classic Theophylline dataset with automatic data preprocessing:
+### Analyzing Real Data
 
 ```python
-from pkpy.theophylline_loader import load_theophylline_data, prepare_for_workflow
-from pkpy import create_pkpy_model, BasePKWorkflow
+from pkpy import BasePKWorkflow
+from pkpy.utils import convert_data
 
-# Load Theophylline data
-data = load_theophylline_data(
-    'Examples/concentrations.csv',
-    'Examples/times.csv',
-    'Examples/demographics.csv'
+# Convert data
+files = convert_data('Theoph.csv',
+                    id_col='Subject',
+                    time_col='Time',
+                    conc_col='conc')
+
+# Create and run workflow
+workflow = BasePKWorkflow.from_files(
+    model_type='onecomp_abs',
+    conc_file=files['concentrations'],
+    time_file=files['times'],
+    demo_file=files['demographics'],
+    dose=320
 )
 
-# Prepare data for analysis
-times, concentrations, demographics, median_dose = prepare_for_workflow(data)
-
-# Create model and analyze
-param_specs = {
-    'Ka': {'value': 1.5, 'cv_percent': 50},
-    'CL': {'value': 2.8, 'cv_percent': 30},
-    'V': {'value': 32.0, 'cv_percent': 30}
-}
-model = create_pkpy_model('onecomp_abs', param_specs)
-workflow = BasePKWorkflow(model=model)
-
-# Set up data
-workflow.times = times
-workflow.data = {
-    'times': times,
-    'concentrations': concentrations,
-    'demographics': demographics,
-    'dose': median_dose
-}
-
-# Run complete analysis
-workflow.run_model_fitting()
-workflow.run_nca_analysis()
-workflow.create_diagnostic_plots()
+results = workflow.run_analysis(create_plots=True)
 workflow.print_summary()
 ```
 
